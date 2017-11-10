@@ -34,7 +34,7 @@ public class UserProducerRunner extends AbstractRunner {
 
 
     /**
-    * 此方法将保证在集群环境中 只有单个节点在运行次方法
+    * This method will ensure that only a single node is running in a clustered environment
     */
     @Override
     public void doRun() throws Exception {
