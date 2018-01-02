@@ -5,6 +5,9 @@
 
 # Usage
 
+## Download
+
+</br> wget https://github.com/goudai/spring-boot-starter-runner/archive/spring-boot-starter-runner-4.0.0.zip
 
 
 ## runner
