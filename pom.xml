@@ -23,12 +23,12 @@
     <distributionManagement>
         <repository>
             <id>my-nexus-releases</id>
-            <url>http://nexus.xxx.com/content/repositories/releases/</url>
+            <url>http://nexus.binggejia.com/content/repositories/releases/</url>
         </repository>
 
         <snapshotRepository>
             <id>my-nexus-snapshot</id>
-            <url>http://nexus.xx.com/content/repositories/snapshots/</url>
+            <url>http://nexus.binggejia.com/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -63,6 +63,36 @@
     </dependencyManagement>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <!--<configuration>-->
+                <!--<archive>-->
+                <!--<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>-->
+                <!--</archive>-->
+                <!--</configuration>-->
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <compilerArgs>
+                        <compilerArg>-parameters</compilerArg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
@@ -121,5 +151,6 @@
             </plugin>
         </plugins>
     </build>
+
 
 </project>

@@ -10,41 +10,50 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.util.StringUtils;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Setter
 @Getter
 @EnableConfigurationProperties(ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties.class)
-
 public abstract class AbstractRunner extends LeaderSelectorListenerAdapter implements Closeable, InitializingBean {
 
     Logger logger = LoggerFactory.getLogger(AbstractRunner.class);
 
 
     @Autowired
-    ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
-
-    private  String name;
-    private String path;
-    private LeaderSelector leaderSelector;
-    private final AtomicInteger leaderCount = new AtomicInteger();
-
+    protected ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
     @Autowired
     private CuratorFramework curatorFramework;
 
 
+    protected String name;
+    protected String path;
+    protected LeaderSelector leaderSelector;
+    private final AtomicInteger leaderCount = new AtomicInteger();
+
+
+
+    public AbstractRunner(String name) {
+        this.name = name;
+    }
+
+    public AbstractRunner() {
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
-        name = this.getClass().getSimpleName();
+        name = StringUtils.isEmpty(name) ? this.getClass().getSimpleName() : name;
         this.path = "/" + properties.getRoot() + "/" + this.name + "/leader";
         leaderSelector = new LeaderSelector(curatorFramework, path, this);
         leaderSelector.autoRequeue();
         leaderSelector.start();
-        logger.info("this.name = {} ,this.path={} is started", this.name, this.path);
+        logger.info("name = {} ,path={} is started", this.name, this.path);
     }
 
 
