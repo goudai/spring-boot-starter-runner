@@ -5,12 +5,13 @@
 
 # update
 * 4.0.1 支持saas 多商户隔离
+* 4.0.2 saas多租户模式下 异常打印出商户id
 
 # Usage
 
 ## Download
 
-</br> wget https://github.com/goudai/spring-boot-starter-runner/archive/spring-boot-starter-runner-4.0.1.zip
+</br> wget https://github.com/goudai/spring-boot-starter-runner/archive/spring-boot-starter-runner-4.0.2.zip
 
 
 ## runner
