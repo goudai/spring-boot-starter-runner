@@ -34,13 +34,14 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
 
     protected String name;
     protected String path;
+    protected String id;
     protected LeaderSelector leaderSelector;
     private final AtomicInteger leaderCount = new AtomicInteger();
 
 
-
     public AbstractRunner(String name) {
         this.name = name;
+        this.id = this.getClass().getSimpleName().replace(this.getClass().getSimpleName(), "");
     }
 
     public AbstractRunner() {
@@ -70,18 +71,26 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             logger.debug(this.getClass().getName() + " is running ");
             doRun();
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            TimeUnit.SECONDS.sleep(30);
-        } finally {
-            final long det = System.currentTimeMillis() - l;
-            if (det < 3000) {
-                TimeUnit.SECONDS.sleep(3);
-                logger.debug("sleep 3s ");
-            } else {
-                logger.debug(" det ： {}", det);
-                TimeUnit.SECONDS.sleep(3);
+
+            logger.error("sleep 30s  projectId = " + this.id +" message : "+ e.getMessage(), e);
+            try {
+                TimeUnit.SECONDS.sleep(30);
+            } catch (Exception e1) {
             }
-            logger.debug(name + " is now the leader. Waiting " + det + " millis...");
+        } finally {
+            try {
+                final long det = System.currentTimeMillis() - l;
+                if (det < 3000) {
+                    TimeUnit.SECONDS.sleep(3);
+                    logger.debug("sleep 3s ");
+                } else {
+                    logger.debug(" det ： {}", det);
+                    TimeUnit.SECONDS.sleep(3);
+                }
+                logger.debug(name + " is now the leader. Waiting " + det + " millis...");
+            } catch (Exception e2) {
+            }
+
 
         }
     }
