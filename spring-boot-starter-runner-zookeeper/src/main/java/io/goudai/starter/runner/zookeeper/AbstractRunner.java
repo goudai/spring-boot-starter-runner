@@ -41,7 +41,6 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
 
     public AbstractRunner(String name) {
         this.name = name;
-        this.id = this.getClass().getSimpleName().replace(this.getClass().getSimpleName(), "");
     }
 
     public AbstractRunner() {
@@ -72,7 +71,7 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             doRun();
         } catch (Exception e) {
 
-            logger.error("sleep 30s  projectId = " + this.id +" message : "+ e.getMessage(), e);
+            logger.error("sleep 30s  name = " +this.name +" path = " + this.path+" message : "+ e.getMessage(), e);
             try {
                 TimeUnit.SECONDS.sleep(30);
             } catch (Exception e1) {
