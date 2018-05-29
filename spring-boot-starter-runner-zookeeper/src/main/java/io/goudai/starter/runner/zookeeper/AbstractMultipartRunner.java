@@ -28,6 +28,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
     @Autowired
     private CuratorFramework curatorFramework;
 
+
     private CountDownLatch countDownLatch = new CountDownLatch(1);
     private AtomicBoolean isStarted = new AtomicBoolean(false);
 

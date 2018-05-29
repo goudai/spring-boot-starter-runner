@@ -11,6 +11,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.concurrent.TimeUnit;
+
 @Configuration
 @EnableConfigurationProperties(ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties.class)
 @Slf4j
@@ -32,7 +34,11 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private String zookeeperServers;
 
-        private String root = "";
+        private String root;
+
+        private int runningIntervalSeconds = 5;
+
+        private int switchRunningIntervalSeconds = 60 * 10;
 
 
     }

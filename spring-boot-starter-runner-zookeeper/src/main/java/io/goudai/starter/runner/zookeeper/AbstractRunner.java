@@ -30,6 +30,8 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
     protected ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
     @Autowired
     private CuratorFramework curatorFramework;
+    @Autowired
+    ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties runnerZookeeperProperties;
 
 
     protected String name;
@@ -72,17 +74,14 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             do {
                 doRun();
                 long currentTime = System.currentTimeMillis();
-                //保证节点至少干活5分钟才进行切换
-                // 切换过快导致zk 负载较高
-                if (currentTime - l > 1000 * 60 * 5) {
-
+                if (currentTime - l > 1000 * runnerZookeeperProperties.getSwitchRunningIntervalSeconds()) {
                     break;
                 } else {
                     // 干完一轮活儿 休息一下
-                    TimeUnit.SECONDS.sleep(5);
+                    TimeUnit.SECONDS.sleep(runnerZookeeperProperties.getRunningIntervalSeconds());
                 }
             } while (true);
-            logger.error(" 已经干活超过5分钟 进行切换");
+            logger.info(" 已经干活超过{}分钟 进行切换",runnerZookeeperProperties.getSwitchRunningIntervalSeconds());
         } catch (Exception e) {
             logger.error("sleep 30s  name = " + this.name + " path = " + this.path + " message : " + e.getMessage(), e);
             try {
