@@ -34,7 +34,7 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private String root;
 
-        private int runningIntervalSeconds = 5;
+        private int runningIntervalSeconds = 1;
 
         private int switchRunningIntervalSeconds = 60 * 10;
 

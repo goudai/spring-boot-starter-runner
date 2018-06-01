@@ -78,7 +78,7 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
                     break;
                 } else {
                     // 干完一轮活儿 休息一下
-                    TimeUnit.SECONDS.sleep(runnerZookeeperProperties.getRunningIntervalSeconds());
+                    TimeUnit.MICROSECONDS.sleep(runnerZookeeperProperties.getRunningIntervalSeconds());
                 }
             } while (true);
             logger.info(" 已经干活超过{}分钟 进行切换",runnerZookeeperProperties.getSwitchRunningIntervalSeconds());
