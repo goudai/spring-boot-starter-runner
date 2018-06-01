@@ -114,12 +114,12 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         return properties.getSwitchIntervalMilliseconds();
     }
 
-    private long getDelaySeconds() {
+    public long getDelaySeconds() {
         return properties.getRefreshProjectIntervalSeconds();
     }
 
 
-    public void setIntervalSeconds(String projectId, Long intervalMilliSeconds) {
+    public void setIntervalMilliSeconds(String projectId, Long intervalMilliSeconds) {
         intervalMilliSecondsMap.put(projectId, intervalMilliSeconds);
     }
 
