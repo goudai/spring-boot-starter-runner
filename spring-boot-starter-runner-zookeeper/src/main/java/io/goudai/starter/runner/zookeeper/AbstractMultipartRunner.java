@@ -69,15 +69,16 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
                             break;
                         }
                         Long intervalMilliSeconds = intervalMilliSecondsMap.get(projectId);
-                        TimeUnit.MILLISECONDS.sleep(changeAndGetIntervalMilliSeconds(RunnerContext
-                                .builder()
-                                .beginTime(beginTime)
-                                .endTime(endTime)
-                                .projectId(projectId)
-                                .preSleepMilliSeconds(intervalMilliSeconds)
-                                .build()
-                        ));
-
+                        if (beginTime.getTime() - endTime.getTime() < intervalMilliSeconds) {
+                            TimeUnit.MILLISECONDS.sleep(changeAndGetIntervalMilliSeconds(RunnerContext
+                                    .builder()
+                                    .beginTime(beginTime)
+                                    .endTime(endTime)
+                                    .projectId(projectId)
+                                    .preSleepMilliSeconds(intervalMilliSeconds)
+                                    .build()
+                            ));
+                        }
                     } while (true);
                 }
             };
