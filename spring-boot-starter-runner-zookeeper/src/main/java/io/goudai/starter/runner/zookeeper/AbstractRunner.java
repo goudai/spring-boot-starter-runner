@@ -14,7 +14,6 @@ import org.springframework.util.StringUtils;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -70,18 +69,7 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
         logger.debug(name + " has been leader " + leaderCount.getAndIncrement() + " time(s) before.");
         try {
             logger.debug(this.getClass().getName() + " is running ");
-
-            do {
-                doRun();
-                long currentTime = System.currentTimeMillis();
-                if (currentTime - l > 1000 * runnerZookeeperProperties.getSwitchRunningIntervalSeconds()) {
-                    break;
-                } else {
-                    // 干完一轮活儿 休息一下
-                    TimeUnit.MICROSECONDS.sleep(runnerZookeeperProperties.getRunningIntervalSeconds());
-                }
-            } while (true);
-            logger.info(" 已经干活超过{}分钟 进行切换",runnerZookeeperProperties.getSwitchRunningIntervalSeconds());
+            doRun();
         } catch (Exception e) {
             logger.error("sleep 30s  name = " + this.name + " path = " + this.path + " message : " + e.getMessage(), e);
             try {

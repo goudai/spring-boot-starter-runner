@@ -8,8 +8,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -21,12 +22,13 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
 
     private Map<String, AbstractRunner> runnerMap = new ConcurrentHashMap<String, AbstractRunner>();
     private ScheduledExecutorService scheduledExecutorService;
-    private long delay = 20;
 
     @Autowired
     protected ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
     @Autowired
     private CuratorFramework curatorFramework;
+
+    private Map<String, Long> intervalMilliSecondsMap = new ConcurrentHashMap<>();
 
 
     private CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -44,9 +46,10 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
             thread.setName(simpleName + " Thread ");
             return thread;
         });
-        scheduledExecutorService.scheduleWithFixedDelay(this::refresh, 120, delay, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this::refresh, 120, getDelaySeconds(), TimeUnit.SECONDS);
         countDownLatch.countDown();
     }
+
 
     private void initRunner(String simpleName, String projectId) {
         try {
@@ -56,7 +59,26 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
                         countDownLatch.await();
                         isStarted.set(true);
                     }
-                    apply(projectId);
+                    intervalMilliSecondsMap.putIfAbsent(projectId, properties.getRunnerIntervalMilliseconds());
+                    final long l = System.currentTimeMillis();
+                    do {
+                        final Date beginTime = new Date();
+                        apply(projectId);
+                        final Date endTime = new Date();
+                        if (endTime.getTime() - l > getSwitchIntervalMilliseconds()) {
+                            break;
+                        }
+                        Long intervalMilliSeconds = intervalMilliSecondsMap.get(projectId);
+                        TimeUnit.MILLISECONDS.sleep(changeAndGetIntervalMilliSeconds(RunnerContext
+                                .builder()
+                                .beginTime(beginTime)
+                                .endTime(endTime)
+                                .projectId(projectId)
+                                .preSleepMilliSeconds(intervalMilliSeconds)
+                                .build()
+                        ));
+
+                    } while (true);
                 }
             };
             runner.setCuratorFramework(curatorFramework);
@@ -69,6 +91,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
 
     }
 
+
     private void refresh() {
         try {
             String simpleName = this.getClass().getSimpleName();
@@ -80,8 +103,24 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         } catch (Exception e) {
             log.error("get all project failed", e);
         }
+    }
 
 
+    public Long changeAndGetIntervalMilliSeconds(RunnerContext runnerContext) {
+        return properties.getRunnerIntervalMilliseconds();
+    }
+
+    protected long getSwitchIntervalMilliseconds() {
+        return properties.getSwitchIntervalMilliseconds();
+    }
+
+    private long getDelaySeconds() {
+        return properties.getRefreshProjectIntervalSeconds();
+    }
+
+
+    public void setIntervalSeconds(String projectId, Long intervalMilliSeconds) {
+        intervalMilliSecondsMap.put(projectId, intervalMilliSeconds);
     }
 
 
@@ -94,7 +133,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
     public abstract void apply(String projectId) throws Exception;
 
     /**
-     * 定时检测项目runner是否启用
+     * 定时检测项目是否有新的项目添加进来
      *
      * @return
      */
@@ -114,5 +153,17 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
                 // ig
             }
         }
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Setter
+    @Getter
+    @Builder
+    public static class RunnerContext {
+        private Date beginTime;
+        private Date endTime;
+        private String projectId;
+        private Long preSleepMilliSeconds;
     }
 }

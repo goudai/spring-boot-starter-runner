@@ -16,6 +16,18 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class ZookeeperRunnerAutoConfiguration {
 
+    /**
+     * 默认runner运行间隔
+     */
+    private static Long DEFAULT_INTERVAL_MILLISECONDS = 2000L;
+    /**
+     * runner在一台节点中至少存活时间
+     */
+    private static Long SWITCH_INTERVAL_MILLISECONDS = 1000L * 10 * 60;
+    /**
+     * 新项目检测间隔
+     */
+    private static int REFRESH_PROJECT_INTERVAL_SECONDS = 120;
 
     @Bean
     public CuratorFramework curatorFramework(RunnerZookeeperProperties properties) {
@@ -34,9 +46,11 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private String root;
 
-        private int runningIntervalSeconds = 1;
+        private long runnerIntervalMilliseconds = DEFAULT_INTERVAL_MILLISECONDS;
 
-        private int switchRunningIntervalSeconds = 60 * 10;
+        private long switchIntervalMilliseconds = SWITCH_INTERVAL_MILLISECONDS;
+
+        private long refreshProjectIntervalSeconds = REFRESH_PROJECT_INTERVAL_SECONDS;
 
 
     }
