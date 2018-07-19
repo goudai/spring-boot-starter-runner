@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -35,9 +36,9 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
     private AtomicBoolean isStarted = new AtomicBoolean(false);
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         String simpleName = this.getClass().getSimpleName();
-        for (final String projectId : getAllProjects()) {
+        for (final String projectId : getAllProjects0()) {
             initRunner(simpleName, projectId);
         }
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -96,7 +97,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
     private void refresh() {
         try {
             String simpleName = this.getClass().getSimpleName();
-            for (String projectId : getAllProjects()) {
+            for (String projectId : getAllProjects0()) {
                 if (!runnerMap.containsKey(projectId)) {
                     initRunner(simpleName, projectId);
                 }
@@ -111,7 +112,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         return properties.getRunnerIntervalMilliseconds();
     }
 
-    protected long getSwitchIntervalMilliseconds() {
+    public long getSwitchIntervalMilliseconds() {
         return properties.getSwitchIntervalMilliseconds();
     }
 
@@ -139,6 +140,15 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
      * @return
      */
     public abstract Set<String> getAllProjects();
+
+    public Set<String> getAllProjects0(){
+        try {
+            return getAllProjects();
+        }catch (Exception e){
+            log.error("获取全部project失败2分钟中重试",e);
+            return new HashSet<>(0);
+        }
+    }
 
     @Override
     public void destroy() {
