@@ -9,7 +9,10 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties(ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties.class)
@@ -29,12 +32,14 @@ public class ZookeeperRunnerAutoConfiguration {
      */
     private static int REFRESH_PROJECT_INTERVAL_SECONDS = 120;
 
+
     @Bean
     public CuratorFramework curatorFramework(RunnerZookeeperProperties properties) {
         CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(properties.zookeeperServers, new ExponentialBackoffRetry(1000, 20));
         curatorFramework.start();
         return curatorFramework;
     }
+
 
 
     @Setter
@@ -52,7 +57,11 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private long refreshProjectIntervalSeconds = REFRESH_PROJECT_INTERVAL_SECONDS;
 
+        private String apiKey;
 
+        private List<String> phoneList;
+
+        private String sign = "【蚂蚁逍客】";
     }
 
 }

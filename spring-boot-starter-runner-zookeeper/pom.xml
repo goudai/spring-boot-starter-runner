@@ -2,12 +2,10 @@
     <parent>
         <artifactId>spring-boot-starter-runner</artifactId>
         <groupId>io.goudai</groupId>
-        <version>4.0.10</version>
+        <version>4.0.11-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>spring-boot-starter-runner-zookeeper</artifactId>
-  <version>4.0.10</version>
     <packaging>jar</packaging>
 
 
@@ -44,5 +42,13 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.springframework.boot</groupId>-->
+            <!--<artifactId>spring-boot-autoconfigure</artifactId>-->
+        <!--</dependency>-->
     </dependencies>
 </project>
