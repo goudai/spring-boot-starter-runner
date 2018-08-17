@@ -1,6 +1,6 @@
-package io.github.goudai.starter.runner.zookeeper;
+package io.goudai.starter.runner.zookeeper;
 
-import io.github.goudai.starter.runner.zookeeper.ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties;
+import io.goudai.starter.runner.zookeeper.ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.curator.framework.CuratorFramework;

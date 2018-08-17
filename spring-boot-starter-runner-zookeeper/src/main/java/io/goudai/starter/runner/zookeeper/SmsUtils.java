@@ -1,4 +1,4 @@
-package io.github.goudai.starter.runner.zookeeper;
+package io.goudai.starter.runner.zookeeper;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
