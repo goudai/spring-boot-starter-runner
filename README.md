@@ -21,7 +21,7 @@
  
  ```xml
 <dependency>
-    <groupId>io.goudai</groupId>
+    <groupId>io.github.goudai</groupId>
     <artifactId>spring-boot-starter-runner-zookeeper</artifactId>
  </dependency>
  ```

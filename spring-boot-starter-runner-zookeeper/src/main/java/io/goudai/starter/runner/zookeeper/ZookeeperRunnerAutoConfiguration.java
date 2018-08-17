@@ -1,4 +1,4 @@
-package io.goudai.starter.runner.zookeeper;
+package io.github.goudai.starter.runner.zookeeper;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,10 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties(ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties.class)
@@ -29,11 +34,24 @@ public class ZookeeperRunnerAutoConfiguration {
      */
     private static int REFRESH_PROJECT_INTERVAL_SECONDS = 120;
 
+
     @Bean
     public CuratorFramework curatorFramework(RunnerZookeeperProperties properties) {
         CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(properties.zookeeperServers, new ExponentialBackoffRetry(1000, 20));
         curatorFramework.start();
         return curatorFramework;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SmsUtils smsUtils() {
+        return new SmsUtils();
     }
 
 
@@ -52,7 +70,14 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private long refreshProjectIntervalSeconds = REFRESH_PROJECT_INTERVAL_SECONDS;
 
+        private String apiKey;
 
+        private List<String> phoneList;
+
+        private String sign = "【蚂蚁销客】";
+
+        private List<String> ignoreExceptionList = Arrays.asList("com.my.common.exception.ConcurrentException");
+        private List<String> profiles = Arrays.asList("prod");
     }
 
 }
