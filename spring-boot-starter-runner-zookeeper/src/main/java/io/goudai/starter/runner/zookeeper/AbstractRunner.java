@@ -1,5 +1,6 @@
-package io.goudai.starter.runner.zookeeper;
+package io.github.goudai.starter.runner.zookeeper;
 
+import io.github.goudai.starter.runner.zookeeper.ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.curator.framework.CuratorFramework;
@@ -11,27 +12,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.Closeable;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.goudai.starter.runner.zookeeper.ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties;
 
 @Setter
 @Getter
 @EnableConfigurationProperties(RunnerZookeeperProperties.class)
+@Configuration
 public abstract class AbstractRunner extends LeaderSelectorListenerAdapter implements Closeable, InitializingBean {
 
     Logger logger = LoggerFactory.getLogger(AbstractRunner.class);
@@ -40,6 +35,11 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
     protected RunnerZookeeperProperties properties;
     @Autowired
     private CuratorFramework curatorFramework;
+    @Autowired
+    private Environment environment;
+
+    @Autowired
+    SmsUtils smsUtils;
 
 
     protected String name;
@@ -57,7 +57,7 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
     }
 
     @Override
-    public void afterPropertiesSet() {
+    public void afterPropertiesSet() throws Exception {
         this.name = StringUtils.isEmpty(name) ? this.getClass().getSimpleName() : name;
         this.path = "/" + properties.getRoot() + "/" + this.name + "/leader";
         this.leaderSelector = new LeaderSelector(curatorFramework, path, this);
@@ -74,10 +74,10 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
 
     @Override
     public void takeLeadership(CuratorFramework client) throws Exception {
-        try{
+        try {
             final long l = System.currentTimeMillis();
             logger.debug(name + " has been leader " + leaderCount.getAndIncrement() + " time(s) before.");
-            final String smsPath = "/"+this.name+"sendSms";
+            final String smsPath = "/" + this.name + "sendSms";
             try {
                 logger.debug(this.getClass().getName() + " is running ");
                 doRun();
@@ -89,27 +89,29 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
                             , "成功执行"
                             , properties.getSign()
                     );
-                    SmsUtils.send(format,properties.getApiKey(),properties.getPhoneList());
+                    send(format);
+
                     client.delete().forPath(smsPath);
                 }
-            }catch (InterruptedException e){
+            } catch (InterruptedException e) {
                 // ig
-            }
-
-            catch (Exception e) {
+            } catch (Exception e) {
                 final Stat stat = client.checkExists().forPath(smsPath);
                 final String message = e.getMessage();
-                if (stat == null && (!StringUtils.isEmpty(properties.getApiKey())) && properties.getPhoneList() != null && !properties.getPhoneList().isEmpty()) {
-                    final String format = String.format("%s:发生错误，事件发生时间:[%s] 事件描述 %s %s"
-                            , this.name
-                            , new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
-                            , message
-                            , properties.getSign()
-                    );
-                    SmsUtils.send(format,properties.getApiKey(),properties.getPhoneList());
-                    client.create().forPath(smsPath);
-                }else {
-                    logger.warn("api key is null, skip send sms");
+                if (!contains(e.getClass().getName())) {
+                    if (stat == null && (!StringUtils.isEmpty(properties.getApiKey())) && properties.getPhoneList() != null && !properties.getPhoneList().isEmpty()) {
+                        final String format = String.format("%s:发生错误，事件发生时间:[%s] 事件描述 %s,异常类型 %s %s"
+                                , this.name
+                                , new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
+                                , message
+                                , e.getClass().getName()
+                                , properties.getSign()
+                        );
+                        send(format);
+                        client.create().forPath(smsPath);
+                    } else {
+                        logger.warn("api key is null, skip send sms");
+                    }
                 }
                 logger.error("sleep 30s  name = " + this.name + " path = " + this.path + " message : " + message, e);
                 try {
@@ -130,13 +132,37 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
                 } catch (Exception e2) {
                 }
             }
-        }catch (Exception e){
-            logger.error(e.getMessage(),e);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
         }
 
     }
 
+    private void send(String format) {
+        boolean isSent = false;
+        final String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles != null && activeProfiles.length > 0 && !properties.getProfiles().isEmpty()) {
+            for (String activeProfile : activeProfiles) {
+                for (String profile : properties.getProfiles()) {
+                    if (activeProfile.equals(profile) && isSent == false) {
+                        smsUtils.send(format);
+                        return;
+                    }
+                }
+            }
+        } else {
+            logger.info(format);
+        }
+    }
 
+    private boolean contains(String message) {
+        final List<String> ignoreExceptionList = this.properties.getIgnoreExceptionList();
+        for (String ex : ignoreExceptionList) {
+            if (message.contains(ex))
+                return true;
+        }
+        return false;
+    }
 
     public abstract void doRun() throws Exception;
 }

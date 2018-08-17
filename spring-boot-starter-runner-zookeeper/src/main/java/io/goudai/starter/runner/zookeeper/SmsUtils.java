@@ -1,35 +1,39 @@
-package io.goudai.starter.runner.zookeeper;
+package io.github.goudai.starter.runner.zookeeper;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.Charset;
 import java.util.Base64;
-import java.util.List;
 
 @Slf4j
 public class SmsUtils {
 
-    public static RestTemplate restTemplate = new RestTemplate();
+    private final String URL = "http://sms-api.luosimao.com/v1/send.json";
 
     @Autowired
-    private ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
-    private static final String URL = "http://sms-api.luosimao.com/v1/send.json";
+    private RestTemplate restTemplate;
 
+    @Autowired
+    private ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties runnerZookeeperProperties;
 
-    public static void send(String format, String apiKey, List<String> phoneList) {
+    public void send(String format) {
+        final String apiKey = runnerZookeeperProperties.getApiKey();
+        if (StringUtils.isEmpty(apiKey)) {
+            log.info("luosimao 无配置 不进行报警信息发送 ：%s", format);
+            return;
+        }
         String authorization = "Basic " + Base64.getEncoder().encodeToString(("api:" + apiKey).getBytes(Charset.forName("UTF-8")));
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", authorization);
         headers.set("Content-Type", "application/x-www-form-urlencoded");
 
-        for (String phone : phoneList) {
+        for (String phone : runnerZookeeperProperties.getPhoneList()) {
             LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("mobile", phone);
             params.add("message", format);

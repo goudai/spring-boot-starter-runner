@@ -1,14 +1,32 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.goudai</groupId>
+    <groupId>io.github.goudai</groupId>
     <artifactId>spring-boot-starter-runner</artifactId>
     <packaging>pom</packaging>
-    <version>4.0.11-SNAPSHOT</version>
+    <version>4.0.12-SNAPSHOT</version>
 
     <modules>
         <module>spring-boot-starter-runner-zookeeper</module>
     </modules>
+
+    <developers>
+        <developer>
+            <name>qingmu</name>
+            <email>247687009@qq.com</email>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <description>spring-boot-starter-runner</description>
+    <url>https://qingmu.io</url>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -19,18 +37,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <distributionManagement>
-        <repository>
-            <id>my-nexus-releases</id>
-            <url>http://nexus.binggejia.com/content/repositories/releases/</url>
-        </repository>
-
-        <snapshotRepository>
-            <id>my-nexus-snapshot</id>
-            <url>http://nexus.binggejia.com/content/repositories/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <scm>
         <connection>scm:git:https://github.com/goudai/spring-boot-starter-runner.git</connection>
@@ -65,11 +71,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.0.2</version>
-                <!--<configuration>-->
-                <!--<archive>-->
-                <!--<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>-->
-                <!--</archive>-->
-                <!--</configuration>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -149,6 +150,60 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--
+   mvn release:perform  -Darguments="-Dgpg.passphrase=*****" -Prelease
+   -->
+    <profiles>
+        <profile>
+            <id>release</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration> <!-- add this to disable checking -->
+                                    <additionalparam>-Xdoclint:none</additionalparam>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- GPG -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>oss</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+                </snapshotRepository>
+                <repository>
+                    <id>oss</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 
 
 </project>
