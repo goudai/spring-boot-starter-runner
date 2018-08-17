@@ -10,20 +10,16 @@
 
 # Usage
 
-## Download
-
-</br> wget https://github.com/goudai/spring-boot-starter-runner/archive/spring-boot-starter-runner-4.0.5.zip
-
-
 ## runner
 
 * add dependency to maven
  
  ```xml
 <dependency>
-    <groupId>io.github.goudai</groupId>
-    <artifactId>spring-boot-starter-runner-zookeeper</artifactId>
- </dependency>
+  <groupId>io.github.goudai</groupId>
+  <artifactId>spring-boot-starter-runner-zookeeper</artifactId>
+  <version>4.0.12</version>
+</dependency>
  ```
  
  * using on spring boot 
