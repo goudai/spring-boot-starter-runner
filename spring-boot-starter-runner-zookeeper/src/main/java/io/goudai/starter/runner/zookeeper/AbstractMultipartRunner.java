@@ -44,7 +44,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
 
     @Override
     public void afterPropertiesSet() {
-        String simpleName = this.getClass().getSimpleName();
+        String simpleName = getName();
         for (final String projectId : getAllProjects0()) {
             initRunner(simpleName, projectId);
         }
@@ -57,6 +57,8 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         scheduledExecutorService.scheduleWithFixedDelay(this::refresh, 120, getDelaySeconds(), TimeUnit.SECONDS);
         countDownLatch.countDown();
     }
+
+
 
 
     private void initRunner(String simpleName, String projectId) {
@@ -184,5 +186,9 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         private Date endTime;
         private String projectId;
         private Long preSleepMilliSeconds;
+    }
+
+    public String getName() {
+        return this.getClass().getSimpleName();
     }
 }
