@@ -1,8 +1,10 @@
 package io.goudai.starter.runner.zookeeper;
 
 import io.goudai.starter.runner.zookeeper.ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties;
-import lombok.Getter;
-import lombok.Setter;
+import jodd.mail.Email;
+import jodd.mail.SendMailSession;
+import jodd.mail.SmtpServer;
+import lombok.*;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
@@ -11,15 +13,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import java.io.Closeable;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,22 +47,24 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
     @Autowired
     private Environment environment;
 
-    @Autowired
-    SmsUtils smsUtils;
-
 
     protected String name;
     protected String path;
-    protected String id;
+    protected String projectId;
     protected LeaderSelector leaderSelector;
     private final AtomicInteger leaderCount = new AtomicInteger();
 
+    private SmtpServer smtpServer;
+    private BlockingQueue<EmailMate> emailQueue;
 
-    public AbstractRunner(String name) {
+
+    @Autowired
+    private ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties runnerZookeeperProperties;
+
+
+    public AbstractRunner(String name, String projectId) {
+        this.projectId = projectId;
         this.name = name;
-    }
-
-    public AbstractRunner() {
     }
 
     @Override
@@ -81,39 +92,12 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             try {
                 logger.debug(this.getClass().getName() + " is running ");
                 doRun();
-                final Stat stat = client.checkExists().forPath(smsPath);
-                if (stat != null) {
-                    final String format = String.format("%s:恢复正常，事件发生时间:[%s] 事件描述 %s %s"
-                            , this.name
-                            , new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
-                            , "成功执行"
-                            , properties.getSign()
-                    );
-                    send(format);
-
-                    client.delete().forPath(smsPath);
-                }
             } catch (InterruptedException e) {
                 // ig
             } catch (Exception e) {
-                final Stat stat = client.checkExists().forPath(smsPath);
-                final String message = e.getMessage();
-                if (!contains(e.getClass().getName())) {
-                    if (stat == null && (!StringUtils.isEmpty(properties.getApiKey())) && properties.getPhoneList() != null && !properties.getPhoneList().isEmpty()) {
-                        final String format = String.format("%s:发生错误，事件发生时间:[%s] 事件描述 %s,异常类型 %s %s"
-                                , this.name
-                                , new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
-                                , message
-                                , e.getClass().getName()
-                                , properties.getSign()
-                        );
-                        send(format);
-                        client.create().forPath(smsPath);
-                    } else {
-                        logger.warn("api key is null, skip send sms");
-                    }
-                }
-                logger.error("sleep 30s  name = " + this.name + " path = " + this.path + " message : " + message, e);
+                final String format = "runner[" + this.name + "]异常，请排查 sleep 30s";
+                send(format, e);
+                logger.error(format, e);
                 try {
                     TimeUnit.SECONDS.sleep(30);
                 } catch (Exception e1) {
@@ -121,14 +105,10 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             } finally {
                 try {
                     final long det = System.currentTimeMillis() - l;
-                    if (det < 3000) {
-                        TimeUnit.SECONDS.sleep(3);
-                        logger.debug("sleep 3s ");
-                    } else {
-                        logger.debug(" det ： {}", det);
-                        TimeUnit.SECONDS.sleep(3);
+                    final long intervalMilliSeconds = getIntervalMilliSeconds();
+                    if (det < intervalMilliSeconds) {
+                        TimeUnit.SECONDS.sleep(intervalMilliSeconds);
                     }
-                    logger.debug(name + " is now the leader. Waiting " + det + " millis...");
                 } catch (Exception e2) {
                 }
             }
@@ -138,21 +118,32 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
 
     }
 
-    private void send(String format) {
-        boolean isSent = false;
-        final String[] activeProfiles = environment.getActiveProfiles();
-        if (activeProfiles != null && activeProfiles.length > 0 && !properties.getProfiles().isEmpty()) {
-            for (String activeProfile : activeProfiles) {
-                for (String profile : properties.getProfiles()) {
-                    if (activeProfile.equals(profile) && isSent == false) {
-                        smsUtils.send(format);
-                        return;
+    private void send(String format, Throwable e) {
+        if (runnerZookeeperProperties.getEmail().isEnabled()) {
+            init();
+            final String[] activeProfiles = environment.getActiveProfiles();
+            if (projectId.equals("1") || projectId.equals("23")) {
+
+                emailQueue.offer(EmailMate.builder().message(format).throwable(e).build());
+            } else {
+                if (activeProfiles != null && activeProfiles.length > 0 && !properties.getProfiles().isEmpty()) {
+                    for (String activeProfile : activeProfiles) {
+                        for (String profile : properties.getProfiles()) {
+                            if (activeProfile.equals(profile)) {
+                                if (runnerZookeeperProperties.getEmail() != null && runnerZookeeperProperties.getEmail().isEnabled()) {
+                                    emailQueue.offer(EmailMate.builder().message(format).throwable(e).build());
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
             }
-        } else {
-            logger.info(format);
         }
+    }
+
+    public long getIntervalMilliSeconds() {
+        return 3000L;
     }
 
     private boolean contains(String message) {
@@ -165,4 +156,77 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
     }
 
     public abstract void doRun() throws Exception;
+
+
+    public void startEmail() {
+        if (runnerZookeeperProperties.getEmail().isEnabled()) {
+            Executors.newCachedThreadPool().execute(() -> {
+                Thread thread = Thread.currentThread();
+                thread.setName("Email-Consumer-Thread ");
+                while (runnerZookeeperProperties.getEmail().isEnabled()) {
+                    try {
+                        final EmailMate take = emailQueue.take();
+                        final String message = take.message;
+
+                        try (final StringWriter out = new StringWriter();
+                             final PrintWriter printWriter = new PrintWriter(out);
+                             final SendMailSession session = smtpServer.createSession();) {
+                            session.open();
+                            take.throwable.printStackTrace(printWriter);
+                            final RunnerZookeeperProperties.Email.Smtp smtp = runnerZookeeperProperties.getEmail().getSmtp();
+                            session.sendMail(Email.create()
+                                    .from(smtp.getFrom())
+                                    .to(smtp.getTo().toArray(new String[smtp.getTo().size()]))
+                                    .subject(message)
+                                    .htmlMessage(
+                                            String.format("<html><META http-equiv=Content-Type content=\"text/html; " +
+                                                    "charset=utf-8\"><body>%s</body></html>", out.toString().replaceAll("(\r\n|\n)", "<br />"))
+                                            , "utf-8")
+                            );
+                        }
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                }
+            });
+        }
+
+    }
+
+
+    private void init() {
+        if (runnerZookeeperProperties.getEmail().isEnabled()) {
+            if (smtpServer == null) {
+                synchronized (AbstractRunner.class) {
+                    if (smtpServer == null) {
+                        if (runnerZookeeperProperties.getEmail().isEnabled()) {
+                            this.emailQueue = new ArrayBlockingQueue<>(runnerZookeeperProperties.getEmail().getEmailQueueSize());
+                            final ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties.Email.Smtp smtp = runnerZookeeperProperties.getEmail().getSmtp();
+                            this.smtpServer = SmtpServer.create()
+                                    .host(smtp.getHost())
+                                    .port(smtp.getPort())
+                                    .ssl(smtp.isUseSSL())
+                                    .auth(smtp.getUsername(), smtp.getPassword())
+                                    .debugMode(smtp.isDebugMode())
+                                    .buildSmtpMailServer();
+                            startEmail();
+                        } else {
+                            this.emailQueue = new ArrayBlockingQueue<>(0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Setter
+    @Getter
+    @ToString
+    public static class EmailMate {
+        private Throwable throwable;
+        private String message;
+    }
 }

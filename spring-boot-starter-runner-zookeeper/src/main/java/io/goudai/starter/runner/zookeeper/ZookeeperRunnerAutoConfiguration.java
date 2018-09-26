@@ -48,12 +48,6 @@ public class ZookeeperRunnerAutoConfiguration {
         return new RestTemplate();
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public SmsUtils smsUtils() {
-        return new SmsUtils();
-    }
-
 
     @Setter
     @Getter
@@ -70,14 +64,33 @@ public class ZookeeperRunnerAutoConfiguration {
 
         private long refreshProjectIntervalSeconds = REFRESH_PROJECT_INTERVAL_SECONDS;
 
-        private String apiKey;
-
-        private List<String> phoneList;
-
-        private String sign = "【蚂蚁销客】";
-
         private List<String> ignoreExceptionList = Arrays.asList("com.my.common.exception.ConcurrentException");
+
         private List<String> profiles = Arrays.asList("prod");
+
+        private Email email = new Email();
+
+        @Setter
+        @Getter
+        public static class Email {
+            private boolean enabled = false;
+            private Smtp smtp;
+            private int emailQueueSize;
+
+            @Setter
+            @Getter
+            public static class Smtp {
+                private String host;
+                private int port;
+                private String username;
+                private String password;
+                private boolean useSSL;
+                private boolean debugMode = false;
+                private String from;
+                private List<String> to;
+
+            }
+        }
     }
 
 }

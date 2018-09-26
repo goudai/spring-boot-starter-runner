@@ -32,9 +32,6 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
     Environment environment;
 
     @Autowired
-    private SmsUtils smsUtils;
-
-    @Autowired
     AutowireCapableBeanFactory autowireCapableBeanFactory;
     @Autowired
     protected ZookeeperRunnerAutoConfiguration.RunnerZookeeperProperties properties;
@@ -66,7 +63,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
 
     private void initRunner(String simpleName, String projectId) {
         try {
-            AbstractRunner runner = new AbstractRunner(simpleName + projectId) {
+            AbstractRunner runner = new AbstractRunner(simpleName + projectId, projectId) {
                 public void doRun() throws Exception {
                     if (!isStarted.get()) {
                         countDownLatch.await();
@@ -77,18 +74,6 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
                     do {
                         final Date beginTime = new Date();
                         apply(projectId);
-                        final String smsPath = "/" + this.name + "sendSms";
-                        final Stat stat = curatorFramework.checkExists().forPath(smsPath);
-                        if (stat != null) {
-                            final String format = String.format("%s:恢复正常，事件发生时间:[%s] 事件描述 %s %s"
-                                    , this.name
-                                    , new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
-                                    , "成功执行"
-                                    , properties.getSign()
-                            );
-                            AbstractMultipartRunner.this.send(format);
-                            curatorFramework.delete().forPath(smsPath);
-                        }
                         final Date endTime = new Date();
                         if (endTime.getTime() - l > getSwitchIntervalMilliseconds()) {
                             break;
@@ -108,8 +93,6 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
                 }
             };
             autowireCapableBeanFactory.autowireBean(runner);
-//            runner.setCuratorFramework(curatorFramework);
-//            runner.setProperties(properties);
             runner.afterPropertiesSet();
             runnerMap.put(projectId, runner);
         } catch (Exception e) {
@@ -176,22 +159,6 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
         }
     }
 
-    private void send(String format) {
-        boolean isSent = false;
-        final String[] activeProfiles = environment.getActiveProfiles();
-        if (activeProfiles != null && activeProfiles.length > 0 && !properties.getProfiles().isEmpty()) {
-            for (String activeProfile : activeProfiles) {
-                for (String profile : properties.getProfiles()) {
-                    if (activeProfile.equals(profile) && isSent == false) {
-                        smsUtils.send(format);
-                        return;
-                    }
-                }
-            }
-        } else {
-            log.info(format);
-        }
-    }
 
     @Override
     public void destroy() {
