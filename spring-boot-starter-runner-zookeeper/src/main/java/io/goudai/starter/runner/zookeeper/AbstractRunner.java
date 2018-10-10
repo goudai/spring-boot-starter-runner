@@ -83,14 +83,21 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
         try {
             final long l = System.currentTimeMillis();
             logger.debug(name + " has been leader " + leaderCount.getAndIncrement() + " time(s) before.");
-            final String smsPath = "/" + this.name + "sendSms";
             try {
                 logger.debug(this.getClass().getName() + " is running ");
                 doRun();
             } catch (InterruptedException e) {
                 // ig
             } catch (Exception e) {
-                final String format = "runner[" + this.name + "]异常，请排查 sleep 30s";
+                String defaultProfile = "unknown";
+                final String[] activeProfiles = environment.getActiveProfiles();
+                if (activeProfiles.length == 0) {
+                    final String[] defaultProfiles = environment.getDefaultProfiles();
+                    if (defaultProfiles.length != 0) {
+                        defaultProfile = defaultProfiles[0];
+                    }
+                }
+                final String format = "env[" + defaultProfile + "],runner[" + this.name + "]异常，请排查 sleep 30s";
                 send(format, e);
                 logger.error(format, e);
                 try {
@@ -118,7 +125,6 @@ public abstract class AbstractRunner extends LeaderSelectorListenerAdapter imple
             init();
             final String[] activeProfiles = environment.getActiveProfiles();
             if (projectId.equals("1") || projectId.equals("23")) {
-
                 emailQueue.offer(EmailMate.builder().message(format).throwable(e).build());
             } else {
                 if (activeProfiles != null && activeProfiles.length > 0 && !properties.getProfiles().isEmpty()) {
