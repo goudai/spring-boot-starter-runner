@@ -104,7 +104,7 @@ public abstract class AbstractMultipartRunner implements InitializingBean, Dispo
 
     private void refresh() {
         try {
-            String simpleName = this.getClass().getSimpleName();
+            String simpleName = getName();
             for (String projectId : getAllProjects0()) {
                 if (!runnerMap.containsKey(projectId)) {
                     initRunner(simpleName, projectId);
