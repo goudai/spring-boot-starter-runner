@@ -18,7 +18,7 @@
 <dependency>
   <groupId>io.github.goudai</groupId>
   <artifactId>spring-boot-starter-runner-zookeeper</artifactId>
-  <version>4.0.12</version>
+  <version>4.0.17</version>
 </dependency>
  ```
  
